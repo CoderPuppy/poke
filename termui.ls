@@ -1,17 +1,22 @@
 require! {
 	charms: charm
+	keypress
 }
 
 class TermUI
-	(@poke, @readable, @writable) ~>
+	(@poke, @styles, @readable, @writable) ~>
 		@charm = charms(@readable, @writable)
 		@charm.reset!
 		@charm.position 1 1
-		@width = 100
-		@height = 30
 
-		@text-x = 2
-		@text-y = 2
+		@width = @writable.columns
+		@height = @writable.rows
+
+		@text-x = 1
+		@text-y = 1
+
+		@scroll-v = 0
+		@scroll-h = 0
 
 		@redraw!
 
@@ -20,28 +25,40 @@ class TermUI
 		# @poke.on \cursor, (x, y) ~>
 		# 	@charm.position @text-x + x, @text-y + y
 
-	redraw: ~>
-		@charm.position 1 1
+	_set-style: (style) ~>
+		@charm.display \reset
+		@charm.foreground style.foreground if style.foreground?
+		@charm.background style.background if style.background?
+		for disp in style.display
+			@charm.display disp
 
+	redraw: ~>
 		buffer = @poke.active-buffer
 
-		title = "[=====[#{buffer.name!}]=====]"
-		@charm.write "+#{"-" * ((@width - 2 - title.length) / 2)}#title#{"-" * ((@width - 2 - title.length) / 2)}+\n"
-		@charm.write "|\n" * (@height - 4)
+		# do
+		# 	@charm.position 1 1
+		# 	@_set-style @styles.title
 
-		command-area = " " * (@width - (6 + 5 * 2))
-		@charm.write "+" + ("-" * ((@width - 2 - command-area.length - 4) / 2)) + "[["
-		@charm.display \underscore
-		@charm.write command-area
-		@charm.display \reset
-		@charm.write "]]" + ("-" * ((@width - 2 - command-area.length - 4) / 2)) + "+\n"
-		
-		for i from 2 to (@height - 3)
-			@charm.position @width, i
-			@charm.write "|"
+		# 	title = " -- #{buffer.name!}"
+		# 	@charm.write title
+		# 	@charm.write " " * (@width - title.length)
 
-		for i from 0 to (@height - @text-y - 1)
-			@charm.position 2, i + @text-y
-			@charm.write buffer.line(i)
+		gutter = [ (line + 1).to-string! for line from @scroll-v to (@height - @text-y - 1 + @scroll-v) ]
+		gutter-width = Math.max(...gutter.map (.length)) + 2
+
+		for i from @scroll-v to (@height - @text-y - 1 + @scroll-v)
+			@charm.position @text-x, i + @text-y
+
+			if buffer.lines[i]?
+				@_set-style @styles.gutter-linenum
+				@charm.write " " * (gutter-width - gutter[i].length - 1)
+				@charm.write gutter[i] + " "
+			else
+				@_set-style @styles.gutter-noline
+				@charm.write "~"
+				@charm.write " " * (gutter-width - 1)
+
+			@_set-style @styles.text
+			@charm.write buffer.line(i).substr(@scroll-h)
 
 exports = module.exports = TermUI
