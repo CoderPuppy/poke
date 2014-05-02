@@ -3,8 +3,11 @@ require! {
 }
 
 class Buffer
-	(@poke, @index, @lines = [""]) ~>
+	(@poke, @index, @_name, @lines = [""]) ~>
 		@cursors = [ Cursor(this, 1, 1) ]
+
+	name: ~> @_name or @lines[0]
+	line: (i) ~> @lines[i] or ""
 
 	_parse-pos: (x, y) ~>
 		if y is \end
