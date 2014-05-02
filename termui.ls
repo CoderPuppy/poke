@@ -37,10 +37,11 @@ class TermUI
 		@charm.write "]]" + ("-" * ((@width - 2 - command-area.length - 4) / 2)) + "+\n"
 		
 		for i from 2 to (@height - 3)
-			@charm.position 2, i
-			@charm.write buffer.line(i - 2)
-
 			@charm.position @width, i
 			@charm.write "|"
+
+		for i from 0 to (@height - @text-y - 1)
+			@charm.position 2, i + @text-y
+			@charm.write buffer.line(i)
 
 exports = module.exports = TermUI
