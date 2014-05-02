@@ -8,7 +8,8 @@ class Buffer
 		@cursors = [ Cursor(this, 1, 1) ]
 		@history = []
 		@history-index = -1
-		@commits = []
+		@commits = [@history]
+		@commit-index = 0
 
 	name: ~> @_name or @lines[0]
 	line: (i) ~> @lines[i] or ""
@@ -42,7 +43,7 @@ class Buffer
 	undo: ~>
 		if @history.length <= 0 or @history-index < 0
 			@uncommit!
-
+			
 			while @history-index > -1
 				@undo!
 		else
@@ -56,19 +57,24 @@ class Buffer
 		@history ++ [op for commit in @commits for op in commit]
 
 	commit: ~>
-		@commits.push @history.concat([])
 		@history = []
 		@history-index = -1
+		@commits.push @history
+		@commit-index += 1
 		this
 
 	uncommit: ~>
-		commit = @commits.pop!
+		while @history-index > -1
+			@undo!
 
-		if not commit
+		if @commit-index < 1
 			throw new Error("No commit to uncommit")
 
-		@history = commit ++ @history
-		@history-index += commit.length
+		@commit-index -= 1
+		commit = @commits[@commit-index]
+
+		@history = commit
+		@history-index = commit.length - 1
 
 		this
 
