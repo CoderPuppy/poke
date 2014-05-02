@@ -1,7 +1,7 @@
 require! {
 	EE: \events .EventEmitter
 	Buffer: './buffer'
-	Cursor: './cursor'
+	Selection: './selection'
 }
 
 class Poke extends EE
@@ -40,7 +40,7 @@ class Poke extends EE
 		@_last-buffer-index = last + 1
 
 	@Buffer = Buffer
-	@Cursor = Cursor
+	@Selection = Selection
 
 
 exports = module.exports = Poke

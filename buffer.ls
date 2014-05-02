@@ -1,104 +1,44 @@
 require! {
-	Cursor: "./cursor"
-	OP: "./ops"
+	TBuffer: "./tbuffer"
 }
 
-class Buffer
-	(@poke, @index, @_name, @lines = [""]) ~>
-		@cursors = [ Cursor(this, 1, 1) ]
-		@history = []
-		@history-index = -1
-		@commits = [@history]
-		@commit-index = 0
+class Buffer extends TBuffer
+	(poke, index, @_name, @lines = [""]) ~>
+		super(poke, index)
 
 	name: ~> @_name or @lines[0]
-	line: (i) ~> @lines[i] or ""
 
-	_parse-pos: (x, y) ~>
-		if y is \end
-			y = @lines.length - 1
+	insert-impl: (x, y, lines) ~>
+		text = lines[0]
+		line = @lines[y]
+		@lines[y] = line.substr(0, x) + text
 
-		if y is \home
-			y = 0
-
-		if y < 0
-			y += @lines.length
-
-		if x is \end
-			x = @lines[y].length
-
-		if x is \home
-			x = 0
-
-		if x < 0
-			x += @lines[y].length
-
-		[ x, y ]
-
-	apply: (op) ~>
-		@history.push [ op, op.apply this ]
-		@history-index += 1
-		this
-
-	undo: ~>
-		if @history.length <= 0 or @history-index < 0
-			if @commit-index < 1
-				throw new Error("Nothing to undo")
-
-			@commit-index -= 1
-			commit = @commits[@commit-index]
-
-			@history = commit
-			@history-index = commit.length - 1
-
-			while @history-index > -1
-				@undo!
+		if lines.length > 1
+			lines[1] += line.substr(x)
 		else
-			hist = @history[@history-index]
-			hist[0].unapply this, hist[1]
-			@history-index -= 1
+			@lines[y] += line.substr(x)
 
-		this
+		@lines.splice(y + 1, 0, ...lines.slice(1))
 
-	_redo: ~>
-		if @history-index >= @history.length - 1
-			throw new Error("Nothing to redo")
+	delete-impl: (x, y, length) ~>
+		deleted = ""
 
-		@history-index += 1
-		@history[@history-index][0].apply(this)
+		while length > 0
+			line = @lines[y]
 
-	redo: ~>
-		if @commit-index >= @commits.length - 1
-			@_redo!
-		else
-			if @commit-index >= @commits.length - 1
-				throw new Error("Nothing to redo")
+			if length > line.length - x and @lines.length - 1 > y
+				length -= line.length - x + 1
+				deleted += line.substr(x) + "\n"
+				@lines[y] = line.substr(0, x) + buffer.lines[y + 1]
+				@lines.splice(y + 1, 1)
+			else
+				deleted += line.substr(x, x + length)
+				@lines[y] = line.substr(0, x) + line.substr(x + length)
+				length = 0
 
-			while @history-index < (@history.length - 1)
-				@_redo!
+		line = @lines[y]
+		@lines[y] = line.substr(0, x) + line.substr(x + length)
 
-			@commit-index += 1
-			@history = @commits[@commit-index]
-			@history-index = -1
-
-		this
-
-	full-history: ~>
-		[op for commit in @commits for op in commit]
-
-	commit: ~>
-		@history = []
-		@history-index = -1
-		@commits.push @history
-		@commit-index += 1
-		this
-
-	insert: (x, y, text) ~>
-		@apply OP.insert(x, y, text)
-
-	delete: (x, y, length) ~>
-		@apply OP.delete(x, y, length)
-
-	#mode: -> Mode
+		deleted
 
 exports = module.exports = Buffer
