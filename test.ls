@@ -12,16 +12,17 @@ poke = new Poke
 buffer = poke.active-buffer
 
 buffer.insert 0 0 "Hello World!\nfoo\nbar\nbaz"
-i buffer.lines
-
 buffer.commit!
 
 buffer.delete \end 0 \all
-i buffer.lines
-
 buffer.commit!
 
+i buffer.lines
+
 buffer.undo!
+i buffer.lines
+
+buffer.redo!
 i buffer.lines
 
 # i poke.create-buffer!

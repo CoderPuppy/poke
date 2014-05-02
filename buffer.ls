@@ -42,8 +42,15 @@ class Buffer
 
 	undo: ~>
 		if @history.length <= 0 or @history-index < 0
-			@uncommit!
-			
+			if @commit-index < 1
+				throw new Error("Nothing to undo")
+
+			@commit-index -= 1
+			commit = @commits[@commit-index]
+
+			@history = commit
+			@history-index = commit.length - 1
+
 			while @history-index > -1
 				@undo!
 		else
@@ -53,29 +60,37 @@ class Buffer
 
 		this
 
+	_redo: ~>
+		if @history-index >= @history.length - 1
+			throw new Error("Nothing to redo")
+
+		@history-index += 1
+		@history[@history-index][0].apply(this)
+
+	redo: ~>
+		if @commit-index >= @commits.length - 1
+			@_redo!
+		else
+			if @commit-index >= @commits.length - 1
+				throw new Error("Nothing to redo")
+
+			while @history-index < (@history.length - 1)
+				@_redo!
+
+			@commit-index += 1
+			@history = @commits[@commit-index]
+			@history-index = -1
+
+		this
+
 	full-history: ~>
-		@history ++ [op for commit in @commits for op in commit]
+		[op for commit in @commits for op in commit]
 
 	commit: ~>
 		@history = []
 		@history-index = -1
 		@commits.push @history
 		@commit-index += 1
-		this
-
-	uncommit: ~>
-		while @history-index > -1
-			@undo!
-
-		if @commit-index < 1
-			throw new Error("No commit to uncommit")
-
-		@commit-index -= 1
-		commit = @commits[@commit-index]
-
-		@history = commit
-		@history-index = commit.length - 1
-
 		this
 
 	insert: (x, y, text) ~>
