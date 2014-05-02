@@ -1,10 +1,14 @@
 require! {
 	Cursor: "./cursor"
+	OP: "./ops"
 }
 
 class Buffer
 	(@poke, @index, @_name, @lines = [""]) ~>
 		@cursors = [ Cursor(this, 1, 1) ]
+		@history = []
+		@history-index = -1
+		@commits = []
 
 	name: ~> @_name or @lines[0]
 	line: (i) ~> @lines[i] or ""
@@ -30,44 +34,49 @@ class Buffer
 
 		[ x, y ]
 
-	insert: (x, y, text) ~>
-		[x, y]  = @_parse-pos(x, y)
+	apply: (op) ~>
+		@history.push [ op, op.apply this ]
+		@history-index += 1
+		this
 
-		lines = text.split(/[\n\r]/g)
-		text = lines[0]
-		line = @lines[y]
-		@lines[y] = line.substr(0, x) + text
-		if lines.length > 1
-			lines[1] += line.substr(x)
+	undo: ~>
+		if @history.length <= 0 or @history-index < 0
+			@uncommit!
+
+			while @history-index > -1
+				@undo!
 		else
-			@lines[y] += line.substr(x)
+			hist = @history[@history-index]
+			hist[0].unapply this, hist[1]
+			@history-index -= 1
 
-		@lines.splice(y + 1, 0, ...lines.slice(1))
+		this
+
+	full-history: ~>
+		@history ++ [op for commit in @commits for op in commit]
+
+	commit: ~>
+		@commits.push @history.concat([])
+		@history = []
+		@history-index = -1
+		this
+
+	uncommit: ~>
+		commit = @commits.pop!
+
+		if not commit
+			throw new Error("No commit to uncommit")
+
+		@history = commit ++ @history
+		@history-index += commit.length
 
 		this
 
-	delete: (x, y, length = 1) ~>
-		[x, y] = @_parse-pos(x, y)
+	insert: (x, y, text) ~>
+		@apply OP.insert(x, y, text)
 
-		if length is \all
-			length = Infinity
-
-		while length > 0
-			line = @lines[y]
-			# console.log "x: %d, y: %d, length: %d, line: %j, lines: %j", x, y, length, line, @lines
-
-			if length > line.length - x and @lines.length - 1 > y
-				length -= line.length - x + 1
-				@lines[y] = line.substr(0, x) + @lines[y + 1]
-				@lines.splice(y + 1, 1)
-			else
-				@lines[y] = line.substr(0, x) + line.substr(x + length)
-				length = 0
-
-		line = @lines[y]
-		@lines[y] = line.substr(0, x) + line.substr(x + length)
-
-		this
+	delete: (x, y, length) ~>
+		@apply OP.delete(x, y, length)
 
 	#mode: -> Mode
 

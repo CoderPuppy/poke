@@ -17,4 +17,9 @@ i buffer.lines
 buffer.delete \end 0 \all
 i buffer.lines
 
+buffer.commit!
+
+buffer.undo!
+i buffer.lines
+
 # i poke.create-buffer!
