@@ -24,18 +24,18 @@ ui = new TermUI(poke, {
 	gutter-linenum:
 		foreground: 3
 		background: 0
-		display: <[ bright ]>
+		display: <[]>
 
 	gutter-noline:
 		foreground: 4
 		background: 0
-		display: <[ bright ]>
+		display: <[]>
 
 	text:
 		foreground: 15
 		background: 0
 		display: <[]>
-}, process.stdin, process.stdout)
+})
 
 # buffer.delete \end 0 \all
 # buffer.commit!
