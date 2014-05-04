@@ -15,6 +15,12 @@ buffer = poke.active-buffer
 buffer.insert 0 0 "Hello World!\nfoo\nbar\nbaz"
 buffer.commit!
 
+test = ~>
+	buffer.insert \end 0 " HI!"
+	set-timeout test, 100
+	
+set-timeout test, 100
+
 ui = new TermUI(poke, {
 	title:
 		foreground: 0

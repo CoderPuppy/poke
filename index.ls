@@ -18,15 +18,19 @@ class Poke extends EE
 
 	switch-buffer: (buffer) ~>
 		if ~@buffers.index-of(buffer)
+			old-buffer = @active-buffer
 			@active-buffer = buffer
+			@emit \switch-buffer buffer, old-buffer
 		else
 			throw new Error("Bad Buffer (Not in list)")
+
+		this
 
 	remove-buffer: (buffer) ~>
 		if ~@buffers.index-of(buffer)
 			@buffers.splice @buffers.index-of(buffer), 1
 			if buffer is @active-buffer and buffer.index > 0
-				@active-buffer = @buffers[buffer.index - 1] or @create-buffer!
+				@switch-buffer @buffers[buffer.index - 1] or @create-buffer!
 
 			@_recalc-last-buffer-index!
 
